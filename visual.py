@@ -2,8 +2,14 @@ import pygame
 
 # initialize game and create screen and caption
 pygame.init()
-screen = pygame.display.set_mode((1000, 800))
+screen = pygame.display.set_mode((1000, 800), 0, 32)
 pygame.display.set_caption("Graph Algorithm Visualizer")
+
+class DropDownMenu:
+    def __init__(self, main_text, dropdowns):
+        self.main_text = main_text
+        self.dropdowns = dropdowns
+
 
 
 class Button:
@@ -34,8 +40,9 @@ class Button:
 class Vertex:
     def __init__(self, pos, id):
         self.pos = pos
-        self.color = (255, 255, 255)
+        self.color = (0, 153, 0)
         self.id = id
+        self.is_pushed = False
 
     def draw_vertex(self):
         pygame.draw.circle(screen, (0, 0, 0), self.pos, 22)
@@ -47,6 +54,7 @@ class Vertex:
 
     def is_covered(self, mouse_pos):
         distance = ((mouse_pos[0] - self.pos[0]) ** 2 + (mouse_pos[1] - self.pos[1]) ** 2) ** 0.5
+        print(distance)
         if distance < 22:
             return True
         return False
@@ -60,16 +68,24 @@ def draw_button(buttons):
     for i in buttons:
         i.draw_button()
 
+def draw_connections(connections):
+    for i in range(0, len(connections) - 1, 2):
+        pygame.draw.line(screen, (0, 0, 0), connections[i].pos, connections[i + 1].pos, 5)
+
+
 def main():
     visual_running = True
     button_list = []
     vertices_list = []
+    nav_button = Button(0, 0, 1000, 60, (31, 61, 122))
     vertex_button = Button(5, 5, 200, 50, (255, 153, 102), "Create Vertex")
+    button_list.append(nav_button)
     button_list.append(vertex_button)
     id = 1
+    connections = []
 
     while visual_running:
-        screen.fill((0, 34, 102))
+        screen.fill((255, 255, 255))
 
         for event in pygame.event.get():
             mouse_pos = pygame.mouse.get_pos()
@@ -88,7 +104,10 @@ def main():
                     vertex_button.color = (255, 153, 102)
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if vertex_button.is_pushed:
+                if vertex_button.is_covered(mouse_pos):
+                    vertex_button.is_pushed = True
+                    print("Vertex button pushed")
+                elif vertex_button.is_pushed:
                     print("Draw vertex")
                     if mouse_pos[1] > vertex_button.y_pos + vertex_button.height:
                         vertices_list.append(Vertex(mouse_pos, id))
@@ -96,14 +115,23 @@ def main():
                         vertex_button.is_pushed = False
                     else:
                         print("Not valid vertex location")
-                if vertex_button.is_covered(mouse_pos):
-                    vertex_button.is_pushed = True
-                    print("Vertex button pushed")
+                # check if any of the vertices on screen have been pushed and set is_pushed to True
+                else:
+                    for i in range(len(vertices_list)):
+                        print("HERE")
+                        if vertices_list[i].is_covered(mouse_pos):
+                            vertices_list[i].is_pushed = True
+                            connections.append(vertices_list[i])
+                            break
 
+        # make sure there is at least one connection before drawing
+        if len(connections) > 1:
+            draw_connections(connections)
+        #print(connections)
         # draw button and update display
         draw_vertices(vertices_list)
         draw_button(button_list)
         pygame.display.update()
 
-
-main()
+if __name__ == '__main__':
+    main()
