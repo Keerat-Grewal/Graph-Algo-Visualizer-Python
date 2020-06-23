@@ -24,11 +24,17 @@ class DropDownMenu:
         self.text_color = text_color
         self.dropdowns = dropdowns
         self.is_pushed = False
+        self.dropdown_buttons = []
 
     def draw_dropdown(self):
+        font = pygame.font.SysFont('comicsans', 25)
+        text = font.render(self.main_text, 1, self.text_color)
+        text_pos = (self.pos[0] + (self.width // 2 - text.get_width() // 2),
+                           self.pos[1] + (self.height // 2 - text.get_height() // 2))
+
         points = []
-        point1 = (self.pos[0] + int((self.width // 5) * 4), int(self.height // 2.5))
-        point2 = (self.pos[0] + (int((self.width // 5) * 4)) - 10, int(self.height // 2.5))
+        point1 = (text_pos[0] + text.get_width() + 20, int(self.height // 2.5))
+        point2 = (point1[0] - 10 , int(self.height // 2.5))
         point3 = (point2[0] + (point1[0] - point2[0]) // 2 , int(self.height // 2.5 + 10))
 
         points.append(point1)
@@ -36,12 +42,26 @@ class DropDownMenu:
         points.append(point3)
 
         pygame.draw.rect(screen, self.color, (self.pos[0], self.pos[1], self.width, self.height), 0)
-        pygame.draw.polygon(screen, (0, 0, 0), points)
-        font = pygame.font.SysFont('comicsans', 25)
-        text = font.render(self.main_text, 1, self.text_color)
-        screen.blit(text, (self.pos[0] + (self.width // 2 - text.get_width() // 2),
-                           self.pos[1] + (self.height // 2 - text.get_height() // 2)))
+        pygame.draw.polygon(screen, (0, 26, 77), points)
+        screen.blit(text, text_pos)
 
+    def create_dropdown_buttons(self):
+        height = 50
+        for i in self.dropdowns:
+            self.dropdown_buttons.append(Button(self.pos[0], self.pos[1] + height, self.width , self.height - 10, self.color,
+                                  (255, 255, 255), i))
+            height += self.height - 10
+
+    def draw_dropdown_buttons(self):
+        for i in self.dropdown_buttons:
+            i.draw_button()
+
+
+    def is_covered(self, mouse_pos):
+        if mouse_pos[0] > self.pos[0] and mouse_pos[0] < self.pos[0] + self.width:
+            if mouse_pos[1] > self.pos[1] and mouse_pos[1] < self.pos[1] + self.height:
+                return True
+        return False
 
 class Button:
     def __init__(self, x_pos, y_pos, width, height, color, text_color, text=""):
@@ -86,7 +106,7 @@ class Vertex:
 
     def is_covered(self, mouse_pos):
         distance = ((mouse_pos[0] - self.pos[0]) ** 2 + (mouse_pos[1] - self.pos[1]) ** 2) ** 0.5
-        print(distance)
+        #print(distance)
         if distance < 22:
             return True
         return False
@@ -108,6 +128,24 @@ def draw_dropdowns(dropdowns):
     for i in dropdowns:
         i.draw_dropdown()
 
+def remove_dup_connections(connections):
+    i = 0
+    seen = []
+    while i < len(connections) - 1:
+        #print("\n" + str(i))
+        if (connections[i], connections[i + 1]) in seen:
+            #print("HERE1")
+            connections.pop(i)
+            connections.pop(i)
+            continue
+        if (connections[i + 1], connections[i]) in seen:
+            #print("HERE2")
+            connections.pop(i)
+            connections.pop(i)
+            continue
+        seen.append((connections[i], connections[i + 1]))
+        i += 2
+
 def initial_screen():
     # this screen helps the user understand how to use the visualizer
     return
@@ -116,24 +154,30 @@ def main():
     visual_running = True
     button_list = []
     vertices_list = []
-    graph_types = ["Undirected graph", "Directed graph", "Weighted graph"]
     dropdowns_list = []
 
+    graph_types = ["Undirected graph", "Directed graph", "Weighted graph"]
+    tree_types = ["Binary Tree", "Binary Search Tree", "Input"]
+    algo_types = ["Depth First Search", "Breath First Search", "Minimum Spanning Tree", "Dijkstra's Algorithm",
+                  "Inorder traversal", "Preorder traversal", "Postorder traversal", "Level order traversal"]
+    clear_types = ["Clear edges", "Clear vertices", "Clear board"]
+    speed_types = ["Slow", "Normal", "Fast"]
+
     # all the buttons
-    nav_button = Button(0, 0, SIZE[0], 55, (0, 0, 0), (255, 255, 255))
+    nav_button = Button(0, 0, SIZE[0], 54, (0, 0, 0), (255, 255, 255))
     vertex_button = Button(0, SIZE[1] - 55, spacing, 50, (242, 242, 242), (0, 0, 0), "Create Vertex")
 
     # all the dropdowns
     graph_dropdown = DropDownMenu((0, 0), spacing, 50, (31, 61, 122), (255, 255, 255),
                                   "Graphs", graph_types)
     tree_dropdown = DropDownMenu((graph_dropdown.pos[0] + spacing, 0), spacing, 50, (31, 61, 122), (255, 255, 255),
-                                  "Trees", graph_types)
+                                  "Trees", tree_types)
     algo_dropdown = DropDownMenu((tree_dropdown.pos[0] + spacing, 0), spacing, 50, (31, 61, 122), (255, 255, 255),
-                                  "Algorithms", graph_types)
+                                  "Algorithms", algo_types)
     clear_dropdown = DropDownMenu((algo_dropdown.pos[0] + spacing, 0), spacing, 50, (31, 61, 122), (255, 255, 255),
-                                  "Clear Board", graph_types)
+                                  "Clear", clear_types)
     speed_dropdown = DropDownMenu((clear_dropdown.pos[0] + spacing, 0), spacing, 50, (31, 61, 122), (255, 255, 255),
-                                  "Speed", graph_types)
+                                  "Speed", speed_types)
 
     # add all elemets to their appropriate list
     button_list.append(nav_button)
@@ -165,6 +209,12 @@ def main():
                 if vertex_button.is_covered(mouse_pos):
                     vertex_button.text_color = (0, 128, 128)
                 else:
+                    for i in range(len(dropdowns_list)):
+                        if dropdowns_list[i].is_covered(mouse_pos):
+                            dropdowns_list[i].text_color = (0, 128, 128)
+                        else:
+                            dropdowns_list[i].text_color = (255, 255, 255)
+                if not vertex_button.is_covered(mouse_pos):
                     vertex_button.text_color = (0, 0, 0)
 
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -179,20 +229,53 @@ def main():
                         vertex_button.is_pushed = False
                     else:
                         print("Not valid vertex location")
+                elif dropdowns_list[0].is_covered(mouse_pos):
+                    dropdowns_list[0].create_dropdown_buttons()
+                    if dropdowns_list[0].is_pushed:
+                        dropdowns_list[0].is_pushed = False
+                    else:
+                        dropdowns_list[0].is_pushed = True
+                elif dropdowns_list[1].is_covered(mouse_pos):
+                    dropdowns_list[1].create_dropdown_buttons()
+                    if dropdowns_list[1].is_pushed:
+                        dropdowns_list[1].is_pushed = False
+                    else:
+                        dropdowns_list[1].is_pushed = True
+                elif dropdowns_list[2].is_covered(mouse_pos):
+                    dropdowns_list[2].create_dropdown_buttons()
+                    if dropdowns_list[2].is_pushed:
+                        dropdowns_list[2].is_pushed = False
+                    else:
+                        dropdowns_list[2].is_pushed = True
+                elif dropdowns_list[3].is_covered(mouse_pos):
+                    dropdowns_list[3].create_dropdown_buttons()
+                    if dropdowns_list[3].is_pushed:
+                        dropdowns_list[3].is_pushed = False
+                    else:
+                        dropdowns_list[3].is_pushed = True
+                elif dropdowns_list[4].is_covered(mouse_pos):
+                    dropdowns_list[4].create_dropdown_buttons()
+                    if dropdowns_list[4].is_pushed:
+                        dropdowns_list[4].is_pushed = False
+                    else:
+                        dropdowns_list[4].is_pushed = True
                 # check if any of the vertices on screen have been pushed and set is_pushed to True
                 else:
                     for i in range(len(vertices_list)):
-                        print("HERE")
                         if vertices_list[i].is_covered(mouse_pos):
                             vertices_list[i].is_pushed = True
                             connections.append(vertices_list[i])
                             break
+                    remove_dup_connections(connections)
 
         # make sure there is at least one connection before drawing
         if len(connections) > 1:
             draw_connections(connections)
         #print(connections)
         # draw button and update display
+        for i in dropdowns_list:
+            if i.is_pushed:
+                i.draw_dropdown_buttons()
         draw_vertices(vertices_list)
         draw_button(button_list)
         draw_dropdowns(dropdowns_list)
