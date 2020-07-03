@@ -1,4 +1,5 @@
 import pygame
+from graph import Graph
 
 # initialize game and create screen and caption
 pygame.init()
@@ -92,9 +93,12 @@ class Button:
 class Vertex:
     def __init__(self, pos, id):
         self.pos = pos
+        self.b_color = ""
         self.color = (0, 153, 0)
         self.id = id
         self.is_pushed = False
+        self.adjacent_to = set()
+        self.visited = False
 
     def draw_vertex(self):
         pygame.draw.circle(screen, (0, 0, 0), self.pos, 22)
@@ -110,6 +114,13 @@ class Vertex:
         if distance < 22:
             return True
         return False
+
+    def __repr__(self):
+        string = "{ "
+        for i in self.adjacent_to:
+            string += str(i.id) + " "
+        string += "}"
+        return string
 
 
 def draw_vertices(vertices):
@@ -145,6 +156,92 @@ def remove_dup_connections(connections):
             continue
         seen.append((connections[i], connections[i + 1]))
         i += 2
+
+def check_dropdowns(dropdowns_list, mouse_pos):
+    # first dropdown
+    if dropdowns_list[0].is_covered(mouse_pos):
+        dropdowns_list[0].create_dropdown_buttons()
+        if dropdowns_list[0].is_pushed:
+            dropdowns_list[0].is_pushed = False
+        else:
+            dropdowns_list[0].is_pushed = True
+    if dropdowns_list[0].is_pushed:
+        for i in dropdowns_list[0].dropdown_buttons:
+            if i.is_covered(mouse_pos):
+                dropdowns_list[0].is_pushed = False
+                i.is_pushed = True
+                return i.text
+    # second dropdown
+    if dropdowns_list[1].is_covered(mouse_pos):
+        dropdowns_list[1].create_dropdown_buttons()
+        if dropdowns_list[1].is_pushed:
+            dropdowns_list[1].is_pushed = False
+        else:
+            dropdowns_list[1].is_pushed = True
+    if dropdowns_list[1].is_pushed:
+        for i in dropdowns_list[1].dropdown_buttons:
+            if i.is_covered(mouse_pos):
+                dropdowns_list[1].is_pushed = False
+                i.is_pushed = True
+                return i.text
+    # third dropdown
+    if dropdowns_list[2].is_covered(mouse_pos):
+        dropdowns_list[2].create_dropdown_buttons()
+        if dropdowns_list[2].is_pushed:
+            dropdowns_list[2].is_pushed = False
+        else:
+            dropdowns_list[2].is_pushed = True
+    if dropdowns_list[2].is_pushed:
+        for i in dropdowns_list[2].dropdown_buttons:
+            if i.is_covered(mouse_pos):
+                dropdowns_list[2].is_pushed = False
+                i.is_pushed = True
+                return i.text
+    # fourth dropdown
+    if dropdowns_list[3].is_covered(mouse_pos):
+        dropdowns_list[3].create_dropdown_buttons()
+        if dropdowns_list[3].is_pushed:
+            dropdowns_list[3].is_pushed = False
+        else:
+            dropdowns_list[3].is_pushed = True
+    if dropdowns_list[3].is_pushed:
+        for i in dropdowns_list[3].dropdown_buttons:
+            if i.is_covered(mouse_pos):
+                dropdowns_list[3].is_pushed = False
+                i.is_pushed = True
+                return i.text
+    # fifth dropdown
+    if dropdowns_list[4].is_covered(mouse_pos):
+        dropdowns_list[4].create_dropdown_buttons()
+        if dropdowns_list[4].is_pushed:
+            dropdowns_list[4].is_pushed = False
+        else:
+            dropdowns_list[4].is_pushed = True
+    if dropdowns_list[4].is_pushed:
+        for i in dropdowns_list[4].dropdown_buttons:
+            if i.is_covered(mouse_pos):
+                dropdowns_list[4].is_pushed = False
+                i.is_pushed = True
+                return i.text
+
+def run_algo(connections, dropdowns_list, algo, vertices_list, button_list):
+    if algo == "Depth First Search":
+        g = Graph(connections, dropdowns_list, algo, vertices_list, button_list)
+        g.depth_first_search()
+    return
+
+def update_screen(connections, dropdowns_list, algo, vertices_list, button_list):
+    if len(connections) > 1:
+        draw_connections(connections)
+    # print(connections)
+    for i in dropdowns_list:
+        if i.is_pushed:
+            i.draw_dropdown_buttons()
+
+    draw_vertices(vertices_list)
+    draw_button(button_list)
+    draw_dropdowns(dropdowns_list)
+
 
 def initial_screen():
     # this screen helps the user understand how to use the visualizer
@@ -193,6 +290,7 @@ def main():
     connections = []
 
     while visual_running:
+        algo = None
         screen.fill((242, 242, 242))
 
         for event in pygame.event.get():
@@ -229,36 +327,7 @@ def main():
                         vertex_button.is_pushed = False
                     else:
                         print("Not valid vertex location")
-                elif dropdowns_list[0].is_covered(mouse_pos):
-                    dropdowns_list[0].create_dropdown_buttons()
-                    if dropdowns_list[0].is_pushed:
-                        dropdowns_list[0].is_pushed = False
-                    else:
-                        dropdowns_list[0].is_pushed = True
-                elif dropdowns_list[1].is_covered(mouse_pos):
-                    dropdowns_list[1].create_dropdown_buttons()
-                    if dropdowns_list[1].is_pushed:
-                        dropdowns_list[1].is_pushed = False
-                    else:
-                        dropdowns_list[1].is_pushed = True
-                elif dropdowns_list[2].is_covered(mouse_pos):
-                    dropdowns_list[2].create_dropdown_buttons()
-                    if dropdowns_list[2].is_pushed:
-                        dropdowns_list[2].is_pushed = False
-                    else:
-                        dropdowns_list[2].is_pushed = True
-                elif dropdowns_list[3].is_covered(mouse_pos):
-                    dropdowns_list[3].create_dropdown_buttons()
-                    if dropdowns_list[3].is_pushed:
-                        dropdowns_list[3].is_pushed = False
-                    else:
-                        dropdowns_list[3].is_pushed = True
-                elif dropdowns_list[4].is_covered(mouse_pos):
-                    dropdowns_list[4].create_dropdown_buttons()
-                    if dropdowns_list[4].is_pushed:
-                        dropdowns_list[4].is_pushed = False
-                    else:
-                        dropdowns_list[4].is_pushed = True
+                # check all the dropdowns
                 # check if any of the vertices on screen have been pushed and set is_pushed to True
                 else:
                     for i in range(len(vertices_list)):
@@ -267,18 +336,26 @@ def main():
                             connections.append(vertices_list[i])
                             break
                     remove_dup_connections(connections)
+                algo = check_dropdowns(dropdowns_list, mouse_pos)
+                if algo is not None:
+                    run_algo(connections, dropdowns_list, algo, vertices_list, button_list)
 
         # make sure there is at least one connection before drawing
-        if len(connections) > 1:
-            draw_connections(connections)
-        #print(connections)
-        # draw button and update display
-        for i in dropdowns_list:
-            if i.is_pushed:
-                i.draw_dropdown_buttons()
-        draw_vertices(vertices_list)
-        draw_button(button_list)
-        draw_dropdowns(dropdowns_list)
+        # draw everything and update display
+        # if len(connections) > 1:
+        #     draw_connections(connections)
+        # #print(connections)
+        # for i in dropdowns_list:
+        #     if i.is_pushed:
+        #         i.draw_dropdown_buttons()
+        # if algo is None:
+        #     draw_vertices(vertices_list)
+        # if algo is not None:
+        #     run_algo(algo, connections)
+        #
+        # draw_button(button_list)
+        # draw_dropdowns(dropdowns_list)
+        update_screen(connections, dropdowns_list, algo, vertices_list, button_list)
         pygame.display.update()
 
 if __name__ == '__main__':
