@@ -157,7 +157,7 @@ def remove_dup_connections(connections):
         seen.append((connections[i], connections[i + 1]))
         i += 2
 
-def check_dropdowns(dropdowns_list, mouse_pos):
+def check_dropdowns(dropdowns_list, mouse_pos, algo):
     # first dropdown
     if dropdowns_list[0].is_covered(mouse_pos):
         dropdowns_list[0].create_dropdown_buttons()
@@ -169,6 +169,7 @@ def check_dropdowns(dropdowns_list, mouse_pos):
         for i in dropdowns_list[0].dropdown_buttons:
             if i.is_covered(mouse_pos):
                 dropdowns_list[0].is_pushed = False
+                dropdowns_list[0].main_text = i.text
                 i.is_pushed = True
                 return i.text
     # second dropdown
@@ -182,6 +183,7 @@ def check_dropdowns(dropdowns_list, mouse_pos):
         for i in dropdowns_list[1].dropdown_buttons:
             if i.is_covered(mouse_pos):
                 dropdowns_list[1].is_pushed = False
+                dropdowns_list[1].main_text = i.text
                 i.is_pushed = True
                 return i.text
     # third dropdown
@@ -195,6 +197,7 @@ def check_dropdowns(dropdowns_list, mouse_pos):
         for i in dropdowns_list[2].dropdown_buttons:
             if i.is_covered(mouse_pos):
                 dropdowns_list[2].is_pushed = False
+                dropdowns_list[2].main_text = i.text
                 i.is_pushed = True
                 return i.text
     # fourth dropdown
@@ -208,6 +211,7 @@ def check_dropdowns(dropdowns_list, mouse_pos):
         for i in dropdowns_list[3].dropdown_buttons:
             if i.is_covered(mouse_pos):
                 dropdowns_list[3].is_pushed = False
+                dropdowns_list[3].main_text = i.text
                 i.is_pushed = True
                 return i.text
     # fifth dropdown
@@ -221,26 +225,53 @@ def check_dropdowns(dropdowns_list, mouse_pos):
         for i in dropdowns_list[4].dropdown_buttons:
             if i.is_covered(mouse_pos):
                 dropdowns_list[4].is_pushed = False
+                dropdowns_list[4].main_text = i.text
                 i.is_pushed = True
                 return i.text
+    return algo
 
 def run_algo(connections, dropdowns_list, algo, vertices_list, button_list):
     if algo == "Depth First Search":
         g = Graph(connections, dropdowns_list, algo, vertices_list, button_list)
         g.depth_first_search()
+    elif algo == "Breadth First Search":
+        g = Graph(connections, dropdowns_list, algo, vertices_list, button_list)
+        g.breadth_first_search()
+    elif algo == "Bipartite":
+        g = Graph(connections, dropdowns_list, algo, vertices_list, button_list)
+        g.bipartite()
     return
 
 def update_screen(connections, dropdowns_list, algo, vertices_list, button_list):
     if len(connections) > 1:
         draw_connections(connections)
     # print(connections)
+    draw_vertices(vertices_list)
     for i in dropdowns_list:
         if i.is_pushed:
             i.draw_dropdown_buttons()
-
-    draw_vertices(vertices_list)
     draw_button(button_list)
     draw_dropdowns(dropdowns_list)
+
+def get_connnection_weight(connections):
+    user_input = ""
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+                break
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_BACKSPACE:
+                    user_input += user_input[:-1]
+                else:
+                    user_input += event.unicode
+
+
+        pygame.draw.rect(screen, (0, 0, 0), (SIZE[0] // 2, SIZE[1], 50, 50))
+
+    return
 
 
 def initial_screen():
@@ -255,14 +286,15 @@ def main():
 
     graph_types = ["Undirected graph", "Directed graph", "Weighted graph"]
     tree_types = ["Binary Tree", "Binary Search Tree", "Input"]
-    algo_types = ["Depth First Search", "Breath First Search", "Minimum Spanning Tree", "Dijkstra's Algorithm",
-                  "Inorder traversal", "Preorder traversal", "Postorder traversal", "Level order traversal"]
+    algo_types = ["Depth First Search", "Breadth First Search", "Minimum Spanning Tree", "Dijkstra's Algorithm",
+                  "Inorder traversal", "Preorder traversal", "Postorder traversal", "Level order traversal", "Bipartite"]
     clear_types = ["Clear edges", "Clear vertices", "Clear board"]
     speed_types = ["Slow", "Normal", "Fast"]
 
     # all the buttons
     nav_button = Button(0, 0, SIZE[0], 54, (0, 0, 0), (255, 255, 255))
     vertex_button = Button(0, SIZE[1] - 55, spacing, 50, (242, 242, 242), (0, 0, 0), "Create Vertex")
+    run_button = Button(SIZE[0] - spacing - 10, SIZE[1] - 55, spacing - 10, 50, (0, 153, 51), (255, 255, 255), "Run")
 
     # all the dropdowns
     graph_dropdown = DropDownMenu((0, 0), spacing, 50, (31, 61, 122), (255, 255, 255),
@@ -276,9 +308,10 @@ def main():
     speed_dropdown = DropDownMenu((clear_dropdown.pos[0] + spacing, 0), spacing, 50, (31, 61, 122), (255, 255, 255),
                                   "Speed", speed_types)
 
-    # add all elemets to their appropriate list
+    # add all elements to their appropriate list
     button_list.append(nav_button)
     button_list.append(vertex_button)
+    button_list.append(run_button)
 
     dropdowns_list.append(graph_dropdown)
     dropdowns_list.append(tree_dropdown)
@@ -286,11 +319,13 @@ def main():
     dropdowns_list.append(clear_dropdown)
     dropdowns_list.append(speed_dropdown)
 
+    algo = None
+
     vertex_id = 1
+    counter = 0
     connections = []
 
     while visual_running:
-        algo = None
         screen.fill((242, 242, 242))
 
         for event in pygame.event.get():
@@ -327,6 +362,8 @@ def main():
                         vertex_button.is_pushed = False
                     else:
                         print("Not valid vertex location")
+                elif run_button.is_covered(mouse_pos):
+                    run_algo(connections, dropdowns_list, algo, vertices_list, button_list)
                 # check all the dropdowns
                 # check if any of the vertices on screen have been pushed and set is_pushed to True
                 else:
@@ -334,27 +371,13 @@ def main():
                         if vertices_list[i].is_covered(mouse_pos):
                             vertices_list[i].is_pushed = True
                             connections.append(vertices_list[i])
+                            # if counter % 2 == 1:
+                            #     get_connnection_weight(connections)
+                            # counter += 1
                             break
                     remove_dup_connections(connections)
-                algo = check_dropdowns(dropdowns_list, mouse_pos)
-                if algo is not None:
-                    run_algo(connections, dropdowns_list, algo, vertices_list, button_list)
+                algo = check_dropdowns(dropdowns_list, mouse_pos, algo)
 
-        # make sure there is at least one connection before drawing
-        # draw everything and update display
-        # if len(connections) > 1:
-        #     draw_connections(connections)
-        # #print(connections)
-        # for i in dropdowns_list:
-        #     if i.is_pushed:
-        #         i.draw_dropdown_buttons()
-        # if algo is None:
-        #     draw_vertices(vertices_list)
-        # if algo is not None:
-        #     run_algo(algo, connections)
-        #
-        # draw_button(button_list)
-        # draw_dropdowns(dropdowns_list)
         update_screen(connections, dropdowns_list, algo, vertices_list, button_list)
         pygame.display.update()
 
