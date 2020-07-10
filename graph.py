@@ -1,5 +1,6 @@
 import pygame
 from time import sleep, time
+from queue_array import Queue
 
 class Graph:
 
@@ -42,9 +43,8 @@ class Graph:
         keys.sort()
         return list(keys)
 
-    def depth_first_search(self):
+    def depth_first_search(self, animate=True):
 
-        self.reset_visited()
         all_vertices = self.get_vertices()
 
         components = []
@@ -54,8 +54,12 @@ class Graph:
                 new_component = [all_vertices[i]]
                 #self.adjacency_list[all_vertices[i]].color = (255, 0, 0)
                 self.adjacency_list[all_vertices[i]].b_color = "b"
-                new_component += self.explore(all_vertices[i])
+                if animate:
+                    new_component += self.explore(all_vertices[i])
+                else:
+                    new_component += self.explore_no_animation(all_vertices[i])
                 components.append(sorted(new_component))
+        self.reset_visited()
         return components
 
     def explore(self, v):
@@ -71,7 +75,7 @@ class Graph:
         pygame.time.delay(1000)
 
         if self.adjacency_list[v].b_color == "b":
-            color = "g"
+            color = "r"
         else:
             color = "b"
 
@@ -84,6 +88,76 @@ class Graph:
                 self.is_bipartite = False
         return component
 
+    def explore_no_animation(self, v):
+        component = []
+        self.adjacency_list[v].visited = True
+        curr_vertex = self.adjacency_list[v]
+
+        if self.adjacency_list[v].b_color == "b":
+            color = "r"
+        else:
+            color = "b"
+
+        for i in curr_vertex.adjacent_to:
+            if not i.visited:
+                i.b_color = color
+                component.append(i.id)
+                component += self.explore_no_animation(i.id)
+            elif i.b_color == curr_vertex.b_color:
+                self.is_bipartite = False
+        return component
+
+    def bipartite(self):
+        from visual import update_screen
+        nani = False
+        self.depth_first_search(nani)
+
+        for i in self.adjacency_list:
+            curr_vertex = self.adjacency_list[i]
+            if curr_vertex.b_color == "r":
+                curr_vertex.color = (255, 0, 0)
+            else:
+                curr_vertex.color = (0, 0, 255)
+        update_screen(self.connections, self.dropdowns_list, self.algo, self.vertices_list, self.button_list)
+        #pygame.display.update()
+        #pygame.time.delay(500)
+
+
+    def breadth_first_search(self):
+        # update_screen function needed here
+        from visual import update_screen
+
+        queue = Queue(1000)
+
+        all_vertices = self.get_vertices()
+        components = []
+
+        for i in range(len(all_vertices)):
+            component = []
+            if not self.adjacency_list[all_vertices[i]].visited:
+                queue.enqueue(self.adjacency_list[all_vertices[i]])
+                self.adjacency_list[all_vertices[i]].visited = True
+                while not(queue.is_empty()):
+                    vertex = queue.dequeue()
+
+                    # update screen
+                    vertex.color = (255, 0, 0)
+                    update_screen(self.connections, self.dropdowns_list, self.algo, self.vertices_list,
+                                  self.button_list)
+                    pygame.display.update()
+                    pygame.time.delay(1000)
+
+                    component.append(vertex.id)
+                    for j in vertex.adjacent_to:
+                        if not j.visited:
+                            queue.enqueue(j)
+                            j.visited = True
+            if component != []:
+                components.append(component)
+        self.reset_visited()
+        return components
+
     def reset_visited(self):
         for i in self.adjacency_list:
             self.adjacency_list[i].visited = False
+            self.adjacency_list[i].color = (0, 153, 0)
